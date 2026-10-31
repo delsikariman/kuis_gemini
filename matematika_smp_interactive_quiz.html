@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathStar SMP - Kuis Interaktif Matematika Kurikulum Merdeka</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- SheetJS CDN for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf8 50%, #e0e7ff 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .avatar-option {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .avatar-option:hover {
+            transform: scale(1.08);
+        }
+        .avatar-option.selected {
+            border-color: #4f46e5;
+            background-color: #e0e7ff;
+            transform: scale(1.1);
+        }
+        .pulse-audio {
+            animation: pulse-ring 1.5s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+        /* Printable style for official PDF output */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- HEADER / NAVIGATION BAR -->
+    <header class="sticky top-0 z-30 glass-card border-b border-indigo-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- App Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                    <i class="fa-solid fa-square-root-variable text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl bg-gradient-to-r from-indigo-700 to-purple-600 bg-clip-text text-transparent leading-tight">
+                        MathStar <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-semibold align-middle border border-indigo-200">SMP Kurikulum Merdeka</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">Petualangan Matematika Seru & Edukatif</p>
+                </div>
+            </div>
+
+            <!-- Controls & Mode Switch -->
+            <div class="flex items-center gap-2 sm:gap-4">
+                <!-- Master Sound Toggle -->
+                <button id="btn-audio-toggle" onclick="toggleAudio()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition-colors flex items-center gap-2 text-sm font-medium border border-slate-200" title="Matikan/Aktifkan Suara">
+                    <i id="audio-icon" class="fa-solid fa-volume-high text-indigo-600"></i>
+                    <span id="audio-label" class="hidden md:inline text-xs">Audio On</span>
+                </button>
+
+                <!-- Current Mode Indicator / Teacher Access Button -->
+                <button id="btn-teacher-mode" onclick="promptTeacherPin()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-slate-800 to-indigo-900 text-white hover:from-slate-700 hover:to-indigo-800 transition-all text-xs sm:text-sm font-semibold shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-amber-300"></i>
+                    <span id="mode-text">Portal Guru</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 md:p-8 flex flex-col justify-center">
+
+        <!-- SCREEN 1: REGISTRATION / IDENTITY FORM -->
+        <section id="screen-register" class="w-full">
+            <div class="glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/60 max-w-2xl mx-auto">
+                <div class="text-center mb-8">
+                    <span class="inline-block p-3 rounded-2xl bg-indigo-100 text-indigo-600 text-2xl mb-3 shadow-inner">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800">Selamat Datang Bintang Muda!</h2>
+                    <p class="text-slate-500 text-sm mt-1">Lengkapi data diri kamu sebelum memulai kuis matematika.</p>
+                </div>
+
+                <form onsubmit="startQuiz(event)" class="space-y-6">
+                    <!-- Student Name -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Nama Lengkap Murid</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="input-student-name" required placeholder="Ketik nama lengkapmu di sini..." class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-slate-800 font-semibold text-sm transition-all bg-white/70">
+                        </div>
+                    </div>
+
+                    <!-- Class Selector -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Pilih Kelas Kamu</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            <button type="button" onclick="selectClass('7A')" class="class-btn py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 font-bold text-sm text-slate-700 transition-all text-center">7A</button>
+                            <button type="button" onclick="selectClass('7B')" class="class-btn py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 font-bold text-sm text-slate-700 transition-all text-center">7B</button>
+                            <button type="button" onclick="selectClass('7C')" class="class-btn py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 font-bold text-sm text-slate-700 transition-all text-center">7C</button>
+                            <button type="button" onclick="selectClass('8A')" class="class-btn py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 font-bold text-sm text-slate-700 transition-all text-center">8A</button>
+                            <button type="button" onclick="selectClass('8B')" class="class-btn py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 font-bold text-sm text-slate-700 transition-all text-center">8B</button>
+                            <button type="button" onclick="selectClass('8C')" class="class-btn py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 font-bold text-sm text-slate-700 transition-all text-center">8C</button>
+                        </div>
+                        <input type="hidden" id="input-student-class" required>
+                        <p id="class-description" class="text-xs text-indigo-600 font-medium mt-2 hidden italic"><i class="fa-solid fa-info-circle mr-1"></i> Soal disesuaikan dengan tingkat kurikulum kelas pilihanmu.</p>
+                    </div>
+
+                    <!-- Avatar Selector -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Pilih Avatar Karakter</label>
+                        <div class="grid grid-cols-4 sm:grid-cols-8 gap-3" id="avatar-grid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                        <input type="hidden" id="input-student-avatar" value="🦊">
+                    </div>
+
+                    <!-- Start Button -->
+                    <button type="submit" class="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-base shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all transform active:scale-95 flex items-center justify-center gap-3">
+                        <span>Mulai Petualangan Kuis!</span>
+                        <i class="fa-solid fa-rocket text-amber-300"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: ACTIVE QUIZ SCREEN -->
+        <section id="screen-quiz" class="w-full hidden space-y-6">
+            <!-- Top Quiz Header Card -->
+            <div class="glass-card rounded-2xl p-4 sm:p-6 shadow-md flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div id="quiz-avatar-display" class="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-2xl border border-indigo-200 shadow-inner">
+                        🦊
+                    </div>
+                    <div>
+                        <h3 id="quiz-student-name" class="font-bold text-slate-800 text-base">Nama Murid</h3>
+                        <span id="quiz-student-class" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">Kelas 7A</span>
+                    </div>
+                </div>
+
+                <!-- Progress & Score -->
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <span class="block text-xs font-semibold text-slate-500 uppercase">Kemajuan Soal</span>
+                        <span id="quiz-progress-text" class="text-sm font-extrabold text-indigo-600">Soal 1 dari 6</span>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col items-center justify-center text-amber-700">
+                        <span class="text-[10px] font-extrabold uppercase">Skor</span>
+                        <span id="quiz-current-score" class="text-sm font-extrabold">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                <div id="quiz-progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/80 space-y-6 relative overflow-hidden">
+                <!-- Audio Question Badge (If applicable) -->
+                <div id="audio-badge-container" class="hidden">
+                    <div class="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <div class="flex items-center gap-3 text-amber-800">
+                            <span class="w-10 h-10 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-headphones text-lg"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-sm">Soal Cerita Berbasis Audio</h4>
+                                <p class="text-xs text-amber-700">Klik tombol di kanan untuk mendengarkan cerita naskah soal!</p>
+                            </div>
+                        </div>
+                        <button onclick="playAudioStory()" class="pulse-audio px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all">
+                            <i class="fa-solid fa-play"></i> Putar Cerita
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category Badge -->
+                <div class="flex items-center justify-between">
+                    <span id="quiz-category-tag" class="px-3.5 py-1 rounded-full text-xs font-extrabold bg-indigo-100 text-indigo-700 border border-indigo-200 uppercase tracking-wide">
+                        Kategori Soal
+                    </span>
+                    <button onclick="speakCurrentQuestion()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-200" title="Dengarkan Soal & Opsi">
+                        <i class="fa-solid fa-volume-high text-indigo-600"></i> Baca Soal (TTS)
+                    </button>
+                </div>
+
+                <!-- Question Text -->
+                <div id="quiz-question-text" class="text-lg sm:text-xl font-extrabold text-slate-800 leading-relaxed">
+                    Teks Pertanyaan Matematika...
+                </div>
+
+                <!-- Option Buttons (4 Choices) -->
+                <div id="quiz-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Feedback & Educational Explanation Box (Shown after selecting an answer) -->
+                <div id="quiz-feedback-box" class="hidden rounded-2xl p-5 border transition-all space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span id="feedback-icon" class="text-2xl"></span>
+                        <h4 id="feedback-title" class="font-extrabold text-base"></h4>
+                    </div>
+                    <div id="feedback-explanation" class="text-sm leading-relaxed text-slate-700 pl-9 border-l-2 border-slate-300">
+                        <!-- Step by step math breakdown -->
+                    </div>
+                    <div class="pt-2 flex justify-end">
+                        <button id="btn-next-question" onclick="nextQuestion()" class="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2">
+                            <span>Soal Berikutnya</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: STUDENT RESULT SUMMARY -->
+        <section id="screen-result" class="w-full hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/70 max-w-2xl mx-auto text-center space-y-6">
+                <!-- Stars & Celebration Banner -->
+                <div class="relative inline-block">
+                    <div id="result-avatar" class="w-24 h-24 mx-auto rounded-3xl bg-indigo-100 border-4 border-white shadow-xl flex items-center justify-center text-5xl">
+                        🦊
+                    </div>
+                    <span id="result-badge" class="absolute -bottom-2 -right-2 px-3 py-1 rounded-full bg-amber-400 text-slate-900 font-black text-xs shadow-md border-2 border-white">
+                        Hebat!
+                    </span>
+                </div>
+
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800">Hasil Petualangan Kuis!</h2>
+                    <p id="result-student-info" class="text-slate-500 font-semibold text-sm mt-1">Nama Murid • Kelas</p>
+                </div>
+
+                <!-- Score Board -->
+                <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100 shadow-inner flex items-center justify-around">
+                    <div>
+                        <span class="block text-xs font-bold text-slate-500 uppercase">Nilai Akhir</span>
+                        <span id="result-final-score" class="text-4xl sm:text-5xl font-black text-indigo-600">0</span>
+                    </div>
+                    <div class="h-12 w-px bg-slate-200"></div>
+                    <div>
+                        <span class="block text-xs font-bold text-slate-500 uppercase">Akurasi Jawaban</span>
+                        <span id="result-accuracy" class="text-2xl font-extrabold text-slate-800">0 / 0</span>
+                    </div>
+                </div>
+
+                <!-- Stars Rating -->
+                <div id="result-stars" class="flex justify-center gap-2 text-3xl text-amber-400">
+                    <!-- Populated via JS -->
+                </div>
+
+                <!-- Educational Message -->
+                <p id="result-eval-message" class="text-sm font-medium text-slate-700 bg-white/60 p-4 rounded-xl border border-slate-100">
+                    Pesan motivasi edukatif...
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button onclick="restartQuiz()" class="flex-1 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Coba Kuis Lagi
+                    </button>
+                    <button onclick="showAnswerReviewModal()" class="flex-1 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-200 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-list-check"></i> Lihat Pembahasan
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: TEACHER DASHBOARD -->
+        <section id="screen-teacher" class="w-full hidden space-y-6">
+            <!-- Dashboard Title & Actions Header -->
+            <div class="glass-card rounded-2xl p-6 shadow-lg border border-white/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-extrabold uppercase">Area Guru</span>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800">Dasbor Evaluasi & Rekap Nilai</h2>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">Pantau, periksa detail pengerjaan murid, dan ekspor dokumen evaluasi resmi.</p>
+                </div>
+
+                <!-- Export Buttons Group -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="exportToExcel()" class="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5" title="Unduh File Excel">
+                        <i class="fa-solid fa-file-excel text-base"></i> Ekspor Excel
+                    </button>
+                    <button onclick="exportToPDF()" class="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5" title="Cetak / Simpan PDF">
+                        <i class="fa-solid fa-file-pdf text-base"></i> Ekspor PDF
+                    </button>
+                    <button onclick="exportToWord()" class="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5" title="Unduh File Word">
+                        <i class="fa-solid fa-file-word text-base"></i> Ekspor Word
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Overview Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass-card p-4 rounded-2xl border border-white/60 shadow-sm">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Total Pengerjaan</span>
+                    <span id="stat-total-submissions" class="block text-2xl font-black text-indigo-600 mt-1">0</span>
+                </div>
+                <div class="glass-card p-4 rounded-2xl border border-white/60 shadow-sm">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Rata-Rata Nilai</span>
+                    <span id="stat-avg-score" class="block text-2xl font-black text-emerald-600 mt-1">0</span>
+                </div>
+                <div class="glass-card p-4 rounded-2xl border border-white/60 shadow-sm">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Nilai Tertinggi</span>
+                    <span id="stat-max-score" class="block text-2xl font-black text-amber-600 mt-1">0</span>
+                </div>
+                <div class="glass-card p-4 rounded-2xl border border-white/60 shadow-sm">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Tingkat Kelulusan</span>
+                    <span id="stat-pass-rate" class="block text-2xl font-black text-purple-600 mt-1">0%</span>
+                </div>
+            </div>
+
+            <!-- Filters & Search Toolbar -->
+            <div class="glass-card rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Search Box -->
+                <div class="relative w-full sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 text-xs"></i>
+                    <input type="text" id="teacher-search-input" oninput="renderTeacherTable()" placeholder="Cari nama murid..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 bg-white/80">
+                </div>
+
+                <!-- Class Filter Dropdown -->
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <label class="text-xs font-bold text-slate-600 whitespace-nowrap">Filter Kelas:</label>
+                    <select id="teacher-class-filter" onchange="renderTeacherTable()" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 bg-white/80 w-full sm:w-auto">
+                        <option value="ALL">Semua Kelas</option>
+                        <option value="7A">Kelas 7A</option>
+                        <option value="7B">Kelas 7B</option>
+                        <option value="7C">Kelas 7C</option>
+                        <option value="8A">Kelas 8A</option>
+                        <option value="8B">Kelas 8B</option>
+                        <option value="8C">Kelas 8C</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Quiz Results Table -->
+            <div class="glass-card rounded-2xl shadow-xl overflow-hidden border border-white/80">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-700">
+                        <thead class="bg-slate-100/90 text-slate-700 uppercase font-extrabold border-b border-slate-200">
+                            <tr>
+                                <th class="py-3.5 px-4">Murid & Kelas</th>
+                                <th class="py-3.5 px-4">Skor Kuis Original</th>
+                                <th class="py-3.5 px-4">Nilai Ditinjau (Akhir)</th>
+                                <th class="py-3.5 px-4">Status & Apresiasi Guru</th>
+                                <th class="py-3.5 px-4">Waktu Pengerjaan</th>
+                                <th class="py-3.5 px-4 text-center">Aksi Evaluasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-table-body" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="mt-auto py-4 text-center text-xs text-slate-500 border-t border-slate-200/60 glass-card">
+        <p>© 2026 MathStar SMP - Media Pembelajaran Matematika Kurikulum Merdeka Interaktif.</p>
+    </footer>
+
+    <!-- MODAL 1: TEACHER PIN AUTHENTICATION -->
+    <div id="modal-teacher-pin" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-white/80 text-center space-y-5 animate-in fade-in zoom-in duration-200">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center text-2xl shadow-lg">
+                <i class="fa-solid fa-user-lock"></i>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-extrabold text-slate-800">Autentikasi Dasbor Guru</h3>
+                <p class="text-xs text-slate-500 mt-1">Area khusus guru dan pengajar. Masukkan PIN keamanan untuk melanjutkan.</p>
+            </div>
+
+            <div>
+                <input type="password" id="input-teacher-pin" maxlength="6" placeholder="Masukkan PIN 4-digit..." class="w-full text-center tracking-widest text-xl font-extrabold py-3.5 rounded-2xl border border-slate-300 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 outline-none">
+                <p id="pin-error-text" class="text-xs text-rose-500 font-bold mt-2 hidden">PIN Keamanan Salah! Silakan coba lagi.</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="closeModal('modal-teacher-pin')" class="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors">
+                    Batal
+                </button>
+                <button onclick="verifyTeacherPin()" class="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-colors">
+                    Masuk Dasbor
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: TEACHER EVALUATION & SCORE ADJUSTMENT -->
+    <div id="modal-teacher-eval" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-white/80 my-8 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+                <div class="flex items-center gap-3">
+                    <span id="eval-student-avatar" class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl">🦊</span>
+                    <div>
+                        <h3 id="eval-student-name" class="font-extrabold text-slate-800 text-base">Nama Murid</h3>
+                        <p id="eval-student-class" class="text-xs text-indigo-600 font-bold">Kelas 7A</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-teacher-eval')" class="text-slate-400 hover:text-slate-600 p-2 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Student Answer Details Review -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-extrabold text-slate-600 uppercase tracking-wider">Rincian Jawaban Murid Per Soal</h4>
+                <div id="eval-question-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Evaluation Form -->
+            <div class="space-y-4 pt-2 border-t border-slate-200">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Penyesuaian Nilai Akhir Guru (0 - 100)</label>
+                    <input type="number" id="input-eval-score" min="0" max="100" class="w-full py-2.5 px-4 rounded-xl border border-slate-300 font-extrabold text-indigo-600 text-base focus:border-indigo-600 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Catatan & Apresiasi Guru Khusus Murid Ini</label>
+                    <textarea id="input-eval-notes" rows="3" placeholder="Tuliskan apresiasi atau saran perbaikan untuk murid..." class="w-full p-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:border-indigo-600 outline-none"></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="closeModal('modal-teacher-eval')" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+                    Batal
+                </button>
+                <button onclick="saveStudentEvaluation()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Hasil Evaluasi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: STUDENT ANSWER REVIEW MODAL -->
+    <div id="modal-answer-review" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-white/80 my-8 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+                <h3 class="font-extrabold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-indigo-600"></i> Review & Pembahasan Lengkap
+                </h3>
+                <button onclick="closeModal('modal-answer-review')" class="text-slate-400 hover:text-slate-600 p-2 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="student-review-container" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeModal('modal-answer-review')" class="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-md">
+                    Tutup Pembahasan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT AREA CONTAINER FOR PDF EXPORT -->
+    <div id="print-area" class="hidden p-8 bg-white text-slate-900">
+        <div class="text-center border-b-2 border-slate-900 pb-4 mb-6">
+            <h1 class="text-2xl font-black uppercase tracking-wider">Laporan Rekapitulasi Hasil Kuis Matematika</h1>
+            <p class="text-sm font-bold">Sekolah Menengah Pertama (SMP) - Kurikulum Merdeka</p>
+            <p class="text-xs text-slate-600 mt-1" id="print-date">Tanggal Cetak: -</p>
+        </div>
+
+        <table class="w-full text-left text-xs border-collapse border border-slate-400 mb-6">
+            <thead>
+                <tr class="bg-slate-200 text-slate-900 font-bold border-b border-slate-400">
+                    <th class="border border-slate-400 p-2">No</th>
+                    <th class="border border-slate-400 p-2">Nama Murid</th>
+                    <th class="border border-slate-400 p-2">Kelas</th>
+                    <th class="border border-slate-400 p-2">Skor Original</th>
+                    <th class="border border-slate-400 p-2">Nilai Akhir Guru</th>
+                    <th class="border border-slate-400 p-2">Catatan Guru</th>
+                </tr>
+            </thead>
+            <tbody id="print-table-body">
+                <!-- Populated dynamically via JS -->
+            </tbody>
+        </table>
+
+        <div class="flex justify-between items-end mt-12 text-xs font-semibold">
+            <div>
+                <p>Mengetahui,</p>
+                <p class="mt-12">Head of Mathematics Dept.</p>
+            </div>
+            <div class="text-right">
+                <p>Guru Pengampu Matematika,</p>
+                <p class="mt-12">( ________________________ )</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC & SCRIPT -->
+    <script type="module">
+        // --- FIREBASE FIRESTORE SYNC INITIALIZATION WITH FALLBACK ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-quiz-smp-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db = null;
+        let auth = null;
+        let isCloudEnabled = false;
+
+        // Initialize Firebase if config exists
+        async function initCloudDatabase() {
+            if (firebaseConfig) {
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    isCloudEnabled = true;
+                    console.log("Cloud database synchronized.");
+                    listenToCloudQuizResults();
+                } catch (e) {
+                    console.warn("Cloud Sync warning: fallback to LocalStorage.", e);
+                }
+            }
+        }
+
+        function getCollectionRef() {
+            if (!db) return null;
+            return collection(db, 'artifacts', appId, 'public', 'data', 'quiz_results');
+        }
+
+        function listenToCloudQuizResults() {
+            const colRef = getCollectionRef();
+            if (!colRef) return;
+            onSnapshot(colRef, (snapshot) => {
+                const cloudItems = [];
+                snapshot.forEach(doc => {
+                    cloudItems.push({ id: doc.id, ...doc.data() });
+                });
+                if (cloudItems.length > 0) {
+                    quizResultsData = cloudItems;
+                    saveToLocalStorage();
+                    if (currentScreen === 'teacher') renderTeacherTable();
+                }
+            }, (err) => {
+                console.error("Firestore snapshot error:", err);
+            });
+        }
+
+        window.saveQuizResultToCloud = async function(record) {
+            // Local fallback save first
+            quizResultsData.unshift(record);
+            saveToLocalStorage();
+
+            if (isCloudEnabled && db) {
+                try {
+                    const colRef = getCollectionRef();
+                    await addDoc(colRef, record);
+                } catch (err) {
+                    console.error("Error saving to Firestore:", err);
+                }
+            }
+        };
+
+        window.updateQuizResultInCloud = async function(id, updatedFields) {
+            // Update local memory
+            const idx = quizResultsData.findIndex(r => r.id === id);
+            if (idx !== -1) {
+                quizResultsData[idx] = { ...quizResultsData[idx], ...updatedFields };
+                saveToLocalStorage();
+            }
+
+            if (isCloudEnabled && db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_results', id);
+                    await updateDoc(docRef, updatedFields);
+                } catch (err) {
+                    console.error("Error updating Firestore doc:", err);
+                }
+            }
+        };
+
+        window.deleteQuizResultInCloud = async function(id) {
+            quizResultsData = quizResultsData.filter(r => r.id !== id);
+            saveToLocalStorage();
+
+            if (isCloudEnabled && db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_results', id);
+                    await deleteDoc(docRef, id);
+                } catch (err) {
+                    console.error("Error deleting Firestore doc:", err);
+                }
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCloudDatabase();
+        });
+    </script>
+
+    <script>
+        // --- GLOBAL APP STATE & CONSTANTS ---
+        let soundEnabled = true;
+        let currentScreen = 'register';
+        let currentStudent = { name: '', class: '', avatar: '🦊' };
+        let currentQuizQuestions = [];
+        let currentQuestionIndex = 0;
+        let currentScore = 0;
+        let studentAnswers = []; // records { question, selected, correct, isRight, explanation }
+        let quizResultsData = JSON.parse(localStorage.getItem('math_quiz_results_v1') || '[]');
+        let activeEvalRecordId = null;
+
+        const TEACHER_PIN_SECRET = "1234"; // Default Teacher PIN (Hidden from UI)
+
+        const AVATARS = ['🦊', '🦉', '🐱', '🦁', '🐼', '🤖', '🧙', '🚀'];
+
+        // --- WEB AUDIO API SYNTHESIZER ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playClick() {
+                if (!soundEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(420, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+            playCorrect() {
+                if (!soundEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    const startTime = this.ctx.currentTime + idx * 0.08;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.35);
+                });
+            }
+            playWrong() {
+                if (!soundEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [220, 180];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = freq;
+                    const startTime = this.ctx.currentTime + idx * 0.12;
+                    gain.gain.setValueAtTime(0.18, startTime);
+                    gain.gain.linearRampToValueAtTime(0.01, startTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.15);
+                });
+            }
+            playFanfare() {
+                if (!soundEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    const startTime = this.ctx.currentTime + idx * 0.1;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.04);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.6);
+                });
+            }
+        }
+        const sfx = new SoundFX();
+
+        // --- TEXT-TO-SPEECH (TTS) ENGINE ---
+        function speakText(text) {
+            if (!soundEnabled || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.95;
+            utterance.pitch = 1.0;
+            const voices = window.speechSynthesis.getVoices();
+            const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID'));
+            if (idVoice) utterance.voice = idVoice;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function stopTTS() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        // Toggle Audio Master
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('audio-icon');
+            const label = document.getElementById('audio-label');
+            if (soundEnabled) {
+                icon.className = "fa-solid fa-volume-high text-indigo-600";
+                label.innerText = "Audio On";
+                sfx.playClick();
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-400";
+                label.innerText = "Audio Off";
+                stopTTS();
+            }
+        }
+
+        // --- QUESTION BANK (KURIKULUM MERDEKA SMP) ---
+        const QUESTION_BANK_GRADE_7 = [
+            {
+                id: 'g7_q1',
+                category: 'Aritmetika Sosial (Audio Story)',
+                isAudio: true,
+                audioScript: "Dengarkan cerita berikut. Pak Ahmad memanen 120 kilogram buah apel dari kebunnya. Sebanyak seperempat bagian apel diberikan kepada tetangganya. Sisanya dijual dengan harga Rp 15.000 per kilogram. Berapakah total uang yang didapat Pak Ahmad?",
+                question: "🔊 [Soal Cerita Audio] Berapakah total pendapatan dari hasil penjualan apel Pak Ahmad?",
+                options: ["Rp 1.350.000", "Rp 1.450.000", "Rp 1.800.000", "Rp 900.000"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Bagian yang dijual = $1 - \\frac{1}{4} = \\frac{3}{4}$ bagian.<br>2. Jumlah kg apel dijual = $\\frac{3}{4} \\times 120\\text{ kg} = 90\\text{ kg}$.<br>3. Total uang = $90\\text{ kg} \\times \\text{Rp } 15.000 = \\text{Rp } 1.350.000$."
+            },
+            {
+                id: 'g7_q2',
+                category: 'Bilangan Bulat (Audio Story)',
+                isAudio: true,
+                audioScript: "Dengarkan cerita perubahan suhu berikut. Suhu awal di dalam ruang pembeku daging adalah minus 6 derajat Celsius. Ketika listrik padam selama dua jam, suhu naik 10 derajat Celsius. Setelah listrik menyala kembali, mesin pendingin menurunkan suhu sebesar 8 derajat Celsius. Berapakah suhu akhir ruang pembeku?",
+                question: "🔊 [Soal Cerita Audio] Berapakah suhu akhir di dalam ruang pembeku daging tersebut?",
+                options: ["-4°C", "4°C", "-12°C", "12°C"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>Suhu awal = $-6^\\circ\\text{C}$.<br>Listrik padam (suhu naik) = $+10^\\circ\\text{C}$.<br>Pendingin menyala (suhu turun) = $-8^\\circ\\text{C}$.<br>Suhu akhir = $-6 + 10 - 8 = 4 - 8 = -4^\\circ\\text{C}$."
+            },
+            {
+                id: 'g7_q3',
+                category: 'Bilangan Bulat (Operasi Campuran)',
+                isAudio: false,
+                question: "Hasil perhitungan dari $-15 + (8 \\times -3) - (-12)$ adalah...",
+                options: ["-27", "-51", "-15", "27"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Kerjakan perkalian dahulu: $8 \\times (-3) = -24$.<br>2. Masukkan ke persamaan: $-15 + (-24) - (-12)$.<br>3. Hitung dari kiri: $-15 - 24 + 12 = -39 + 12 = -27$."
+            },
+            {
+                id: 'g7_q4',
+                category: 'Bentuk Aljabar',
+                isAudio: false,
+                question: "Bentuk sederhana dari $4(3x - 2y) - 3(2x + 5y)$ adalah...",
+                options: ["6x - 23y", "6x + 7y", "18x - 23y", "6x - 7y"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Jabarkan kurung pertama: $4(3x - 2y) = 12x - 8y$.<br>2. Jabarkan kurung kedua: $-3(2x + 5y) = -6x - 15y$.<br>3. Kelompokkan suku sejenis: $(12x - 6x) + (-8y - 15y) = 6x - 23y$."
+            },
+            {
+                id: 'g7_q5',
+                category: 'PLSV',
+                isAudio: false,
+                question: "Tentukan nilai $x$ yang memenuhi persamaan linear $5x - 7 = 2x + 14$!",
+                options: ["x = 7", "x = 5", "x = 3", "x = 21"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Pindahkan variabel $x$ ke ruas kiri: $5x - 2x = 14 + 7$.<br>2. Sederhanakan: $3x = 21$.<br>3. Bagi kedua ruas dengan 3: $x = \\frac{21}{3} = 7$."
+            },
+            {
+                id: 'g7_q6',
+                category: 'Perbandingan Senilai',
+                isAudio: false,
+                question: "Sebuah mobil memerlukan 6 liter bensin untuk menempuh jarak 72 km. Berapa liter bensin yang dibutuhkan untuk menempuh jarak 180 km?",
+                options: ["15 liter", "12 liter", "18 liter", "20 liter"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Konsumsi bensin per km = $\\frac{6\\text{ liter}}{72\\text{ km}} = \\frac{1}{12}\\text{ liter/km}$.<br>2. Bensin untuk 180 km = $180 \\times \\frac{1}{12} = 15\\text{ liter}$."
+            }
+        ];
+
+        const QUESTION_BANK_GRADE_8 = [
+            {
+                id: 'g8_q1',
+                category: 'Teorema Pythagoras (Audio Story)',
+                isAudio: true,
+                audioScript: "Dengarkan cerita berikut. Budi berdiri di sudut lapangan berbentuk persegi panjang. Ia ingin berjalan menyusuri garis diagonal dari sudut tempat ia berdiri menuju sudut berseberangan. Jika panjang lapangan 16 meter dan lebarnya 12 meter, berapakah panjang lintasan diagonal yang dilalui Budi?",
+                question: "🔊 [Soal Cerita Audio] Berapakah panjang lintasan diagonal lapangan tersebut?",
+                options: ["20 meter", "24 meter", "28 meter", "18 meter"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>Menggunakan rumus Teorema Pythagoras: $c = \\sqrt{p^2 + l^2}$.<br>$c = \\sqrt{16^2 + 12^2} = \\sqrt{256 + 144} = \\sqrt{400} = 20\\text{ meter}$."
+            },
+            {
+                id: 'g8_q2',
+                category: 'Statistika Dasar (Audio Story)',
+                isAudio: true,
+                audioScript: "Dengarkan nilai ulangan berikut. Hasil nilai ulangan matematika dari 6 orang siswa SMP adalah 80, 90, 70, 85, 95, dan 60. Berapakah nilai rata-rata atau mean ulangan keenam siswa tersebut?",
+                question: "🔊 [Soal Cerita Audio] Berapakah nilai rata-rata (mean) dari nilai ulangan tersebut?",
+                options: ["80", "82.5", "85", "78.5"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>Mean = $\\frac{\\text{Jumlah Seluruh Nilai}}{\\text{Banyaknya Data}}$.<br>$\\text{Jumlah Nilai} = 80 + 90 + 70 + 85 + 95 + 60 = 480$.<br>$\\text{Mean} = \\frac{480}{6} = 80$."
+            },
+            {
+                id: 'g8_q3',
+                category: 'Bilangan Berpangkat & Akar',
+                isAudio: false,
+                question: "Hasil perhitungan dari $2^4 \\times 2^{-1} + \\sqrt{144}$ adalah...",
+                options: ["20", "16", "24", "14"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Sifat eksponen: $2^4 \\times 2^{-1} = 2^{4-1} = 2^3 = 8$.<br>2. Akar kuadrat: $\\sqrt{144} = 12$.<br>3. Hasil akhir: $8 + 12 = 20$."
+            },
+            {
+                id: 'g8_q4',
+                category: 'Persamaan Garis Lurus',
+                isAudio: false,
+                question: "Gradien ($m$) dari garis lurus yang melalui titik $P(3, 2)$ dan $Q(7, 10)$ adalah...",
+                options: ["m = 2", "m = 3", "m = 1/2", "m = 4"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>Rumus Gradien: $m = \\frac{y_2 - y_1}{x_2 - x_1}$.<br>$m = \\frac{10 - 2}{7 - 3} = \\frac{8}{4} = 2$."
+            },
+            {
+                id: 'g8_q5',
+                category: 'Relasi & Fungsi',
+                isAudio: false,
+                question: "Diketahui rumus fungsi $f(x) = 4x - 3$. Nilai dari $f(5) + f(-2)$ adalah...",
+                options: ["6", "17", "-11", "28"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Hitung $f(5) = 4(5) - 3 = 20 - 3 = 17$.<br>2. Hitung $f(-2) = 4(-2) - 3 = -8 - 3 = -11$.<br>3. Jumlahkan: $17 + (-11) = 6$."
+            },
+            {
+                id: 'g8_q6',
+                category: 'Statistika - Modus & Median',
+                isAudio: false,
+                question: "Data tinggi badan (cm) 7 siswa: 152, 148, 155, 150, 152, 160, 152. Berapakah Modus dan Median data tersebut?",
+                options: ["Modus = 152, Median = 152", "Modus = 152, Median = 150", "Modus = 150, Median = 152", "Modus = 155, Median = 152"],
+                correct: 0,
+                explanation: "<strong>Langkah Perhitungan:</strong><br>1. Modus (paling sering muncul) = 152 (3 kali).<br>2. Urutkan data: 148, 150, 152, [152], 152, 155, 160.<br>Median (nilai tengah ke-4) = 152."
+            }
+        ];
+
+        // --- AVATAR SELECTION & REGISTRATION ---
+        function initAvatarGrid() {
+            const container = document.getElementById('avatar-grid');
+            container.innerHTML = '';
+            AVATARS.forEach((av, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `avatar-option w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-xl sm:text-2xl cursor-pointer ${i === 0 ? 'selected' : ''}`;
+                btn.innerText = av;
+                btn.onclick = () => {
+                    sfx.playClick();
+                    document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    document.getElementById('input-student-avatar').value = av;
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function selectClass(cls) {
+            sfx.playClick();
+            document.querySelectorAll('.class-btn').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+                b.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+            });
+            event.target.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+            event.target.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+
+            document.getElementById('input-student-class').value = cls;
+            document.getElementById('class-description').classList.remove('hidden');
+        }
+
+        // --- NAVIGATION SCREEN CONTROLLER ---
+        function switchScreen(screenName) {
+            currentScreen = screenName;
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`screen-${screenName}`).classList.remove('hidden');
+
+            const modeBtnText = document.getElementById('mode-text');
+            if (screenName === 'teacher') {
+                modeBtnText.innerText = "Kembali ke Kuis";
+            } else {
+                modeBtnText.innerText = "Portal Guru";
+            }
+        }
+
+        // --- QUIZ EXECUTION ---
+        function startQuiz(e) {
+            e.preventDefault();
+            sfx.playClick();
+
+            const name = document.getElementById('input-student-name').value.trim();
+            const cls = document.getElementById('input-student-class').value;
+            const avatar = document.getElementById('input-student-avatar').value;
+
+            if (!cls) {
+                alertModal("Peringatan", "Silakan pilih kelas kamu terlebih dahulu!");
+                return;
+            }
+
+            currentStudent = { name, class: cls, avatar };
+            currentQuestionIndex = 0;
+            currentScore = 0;
+            studentAnswers = [];
+
+            // Select question bank based on grade level (7 vs 8)
+            if (cls.startsWith('7')) {
+                currentQuizQuestions = shuffleArray([...QUESTION_BANK_GRADE_7]);
+            } else {
+                currentQuizQuestions = shuffleArray([...QUESTION_BANK_GRADE_8]);
+            }
+
+            // Shuffle options for each question to vary playthroughs
+            currentQuizQuestions.forEach(q => {
+                const originalCorrectOption = q.options[q.correct];
+                q.options = shuffleArray([...q.options]);
+                q.correct = q.options.indexOf(originalCorrectOption);
+            });
+
+            // Update UI Header in Quiz
+            document.getElementById('quiz-student-name').innerText = currentStudent.name;
+            document.getElementById('quiz-student-class').innerText = `Kelas ${currentStudent.class}`;
+            document.getElementById('quiz-avatar-display').innerText = currentStudent.avatar;
+            document.getElementById('quiz-current-score').innerText = '0';
+
+            switchScreen('quiz');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            stopTTS();
+            const q = currentQuizQuestions[currentQuestionIndex];
+            const total = currentQuizQuestions.length;
+
+            // Update Progress Bar & Text
+            document.getElementById('quiz-progress-text').innerText = `Soal ${currentQuestionIndex + 1} dari ${total}`;
+            const pct = ((currentQuestionIndex) / total) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${pct}%`;
+
+            // Update Category
+            document.getElementById('quiz-category-tag').innerText = q.category;
+
+            // Audio Badge Handle
+            const audioBadge = document.getElementById('audio-badge-container');
+            if (q.isAudio) {
+                audioBadge.classList.remove('hidden');
+                // Auto play story if audio enabled
+                setTimeout(() => playAudioStory(), 400);
+            } else {
+                audioBadge.classList.add('hidden');
+            }
+
+            // Question Text
+            document.getElementById('quiz-question-text').innerHTML = q.question;
+
+            // Options
+            const optionsContainer = document.getElementById('quiz-options-container');
+            optionsContainer.innerHTML = '';
+
+            const optionLabels = ['A', 'B', 'C', 'D'];
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn text-left p-4 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/50 font-semibold text-slate-800 text-sm sm:text-base transition-all flex items-center gap-3 shadow-sm active:scale-[0.99]";
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded-xl bg-slate-100 font-extrabold text-slate-700 flex items-center justify-center text-xs border border-slate-200 shrink-0">${optionLabels[idx]}</span>
+                    <span>${opt}</span>
+                `;
+                btn.onclick = () => selectOption(idx);
+                optionsContainer.appendChild(btn);
+            });
+
+            // Hide Feedback Box
+            document.getElementById('quiz-feedback-box').classList.add('hidden');
+        }
+
+        function playAudioStory() {
+            const q = currentQuizQuestions[currentQuestionIndex];
+            if (q && q.audioScript) {
+                speakText(q.audioScript);
+            }
+        }
+
+        function speakCurrentQuestion() {
+            const q = currentQuizQuestions[currentQuestionIndex];
+            if (!q) return;
+            const textToSpeak = `${q.question}. Pilihan jawaban adalah: A, ${q.options[0]}. B, ${q.options[1]}. C, ${q.options[2]}. D, ${q.options[3]}.`;
+            speakText(textToSpeak);
+        }
+
+        function selectOption(selectedIndex) {
+            stopTTS();
+            const q = currentQuizQuestions[currentQuestionIndex];
+            const isRight = selectedIndex === q.correct;
+
+            // Disable all option buttons
+            const optionBtns = document.querySelectorAll('.option-btn');
+            optionBtns.forEach((btn, idx) => {
+                btn.disabled = true;
+                btn.classList.remove('hover:border-indigo-400', 'hover:bg-indigo-50/50');
+                if (idx === q.correct) {
+                    btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900');
+                } else if (idx === selectedIndex && !isRight) {
+                    btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-900');
+                }
+            });
+
+            // Update Score & Sound
+            if (isRight) {
+                sfx.playCorrect();
+                currentScore += Math.round(100 / currentQuizQuestions.length);
+                document.getElementById('quiz-current-score').innerText = currentScore;
+            } else {
+                sfx.playWrong();
+            }
+
+            // Save response record
+            studentAnswers.push({
+                question: q.question,
+                category: q.category,
+                options: q.options,
+                selected: selectedIndex,
+                correct: q.correct,
+                isRight: isRight,
+                explanation: q.explanation
+            });
+
+            // Show Educational Feedback Box
+            const feedbackBox = document.getElementById('quiz-feedback-box');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackExp = document.getElementById('feedback-explanation');
+
+            feedbackBox.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'bg-rose-50', 'border-rose-200');
+
+            if (isRight) {
+                feedbackBox.classList.add('bg-emerald-50', 'border-emerald-200');
+                feedbackIcon.innerHTML = "🎉";
+                feedbackTitle.className = "font-extrabold text-base text-emerald-800";
+                feedbackTitle.innerText = "Luar Biasa! Jawaban Kamu Tepat Sekali!";
+            } else {
+                feedbackBox.classList.add('bg-rose-50', 'border-rose-200');
+                feedbackIcon.innerHTML = "💡";
+                feedbackTitle.className = "font-extrabold text-base text-rose-800";
+                feedbackTitle.innerText = "Belum Tepat, Yuk Pelajari Langkahnya!";
+            }
+
+            feedbackExp.innerHTML = q.explanation;
+        }
+
+        function nextQuestion() {
+            sfx.playClick();
+            currentQuestionIndex++;
+            if (currentQuestionIndex < currentQuizQuestions.length) {
+                loadQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            stopTTS();
+            // Cap score max at 100
+            if (currentScore > 100) currentScore = 100;
+
+            // Save record
+            const record = {
+                id: 'res_' + Date.now(),
+                studentName: currentStudent.name,
+                studentClass: currentStudent.class,
+                avatar: currentStudent.avatar,
+                originalScore: currentScore,
+                finalScore: currentScore, // Initial state equals original score
+                teacherNotes: '',
+                timestamp: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                answers: studentAnswers
+            };
+
+            window.saveQuizResultToCloud(record);
+
+            // Populate Result Screen
+            document.getElementById('result-avatar').innerText = currentStudent.avatar;
+            document.getElementById('result-student-info').innerText = `${currentStudent.name} • Kelas ${currentStudent.class}`;
+            document.getElementById('result-final-score').innerText = currentScore;
+            document.getElementById('result-accuracy').innerText = `${studentAnswers.filter(a => a.isRight).length} / ${currentQuizQuestions.length}`;
+
+            // Stars calculation
+            const starsContainer = document.getElementById('result-stars');
+            starsContainer.innerHTML = '';
+            let starCount = 1;
+            if (currentScore >= 90) starCount = 5;
+            else if (currentScore >= 80) starCount = 4;
+            else if (currentScore >= 70) starCount = 3;
+            else if (currentScore >= 50) starCount = 2;
+
+            for (let i = 0; i < 5; i++) {
+                const star = document.createElement('i');
+                star.className = i < starCount ? "fa-solid fa-star" : "fa-regular fa-star text-slate-300";
+                starsContainer.appendChild(star);
+            }
+
+            // Motivational message
+            const msgBox = document.getElementById('result-eval-message');
+            if (currentScore >= 80) {
+                msgBox.innerText = "🌟 Luar biasa! Kamu sudah sangat menguasai konsep matematika Kurikulum Merdeka ini. Pertahankan prestasimu!";
+                sfx.playFanfare();
+                triggerConfetti();
+            } else if (currentScore >= 60) {
+                msgBox.innerText = "👍 Hasil yang bagus! Kamu sudah memahami sebagian besar konsep. Latihan sedikit lagi untuk meraih nilai sempurna!";
+            } else {
+                msgBox.innerText = "💪 Jangan berkecil hati! Matematika adalah seni berlatih. Pelajari pembahasan di tombol bawah dan coba kuis sekali lagi ya!";
+            }
+
+            switchScreen('result');
+        }
+
+        function restartQuiz() {
+            sfx.playClick();
+            switchScreen('register');
+        }
+
+        function showAnswerReviewModal() {
+            sfx.playClick();
+            const container = document.getElementById('student-review-container');
+            container.innerHTML = '';
+
+            studentAnswers.forEach((ans, idx) => {
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-2xl border text-xs space-y-2 ${ans.isRight ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'}`;
+                div.innerHTML = `
+                    <div class="flex items-center justify-between font-bold">
+                        <span class="${ans.isRight ? 'text-emerald-800' : 'text-rose-800'}">Soal #${idx + 1} (${ans.category})</span>
+                        <span>${ans.isRight ? '✅ Benar' : '❌ Salah'}</span>
+                    </div>
+                    <p class="font-extrabold text-slate-800 text-sm">${ans.question}</p>
+                    <div class="text-slate-600">
+                        <p>Jawaban Kamu: <strong>${ans.options[ans.selected] || '-'}</strong></p>
+                        <p>Jawaban Tepat: <strong>${ans.options[ans.correct]}</strong></p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-200 text-slate-700 leading-relaxed">
+                        ${ans.explanation}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            openModal('modal-answer-review');
+        }
+
+        // --- TEACHER DASHBOARD & AUTHENTICATION ---
+        function promptTeacherPin() {
+            sfx.playClick();
+            if (currentScreen === 'teacher') {
+                switchScreen('register');
+                return;
+            }
+            document.getElementById('input-teacher-pin').value = '';
+            document.getElementById('pin-error-text').classList.add('hidden');
+            openModal('modal-teacher-pin');
+        }
+
+        function verifyTeacherPin() {
+            const inputPin = document.getElementById('input-teacher-pin').value.trim();
+            if (inputPin === TEACHER_PIN_SECRET) {
+                sfx.playCorrect();
+                closeModal('modal-teacher-pin');
+                switchScreen('teacher');
+                renderTeacherTable();
+            } else {
+                sfx.playWrong();
+                document.getElementById('pin-error-text').classList.remove('hidden');
+            }
+        }
+
+        function renderTeacherTable() {
+            const searchVal = document.getElementById('teacher-search-input').value.toLowerCase().trim();
+            const classFilter = document.getElementById('teacher-class-filter').value;
+            const tbody = document.getElementById('teacher-table-body');
+            tbody.innerHTML = '';
+
+            // Filter data
+            let filtered = quizResultsData.filter(item => {
+                const matchName = item.studentName.toLowerCase().includes(searchVal);
+                const matchClass = classFilter === 'ALL' || item.studentClass === classFilter;
+                return matchName && matchClass;
+            });
+
+            // Update stats
+            document.getElementById('stat-total-submissions').innerText = filtered.length;
+            if (filtered.length > 0) {
+                const avg = Math.round(filtered.reduce((acc, r) => acc + (r.finalScore ?? r.originalScore), 0) / filtered.length);
+                const max = Math.max(...filtered.map(r => r.finalScore ?? r.originalScore));
+                const passCount = filtered.filter(r => (r.finalScore ?? r.originalScore) >= 70).length;
+
+                document.getElementById('stat-avg-score').innerText = avg;
+                document.getElementById('stat-max-score').innerText = max;
+                document.getElementById('stat-pass-rate').innerText = `${Math.round((passCount / filtered.length) * 100)}%`;
+            } else {
+                document.getElementById('stat-avg-score').innerText = '0';
+                document.getElementById('stat-max-score').innerText = '0';
+                document.getElementById('stat-pass-rate').innerText = '0%';
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-400 italic">Belum ada rekap pengerjaan murid yang sesuai.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-indigo-50/40 transition-colors";
+
+                const scoreToShow = item.finalScore ?? item.originalScore;
+                const isPassed = scoreToShow >= 70;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-bold flex items-center gap-2.5">
+                        <span class="text-xl">${item.avatar || '🦊'}</span>
+                        <div>
+                            <span class="block text-slate-800">${escapeHTML(item.studentName)}</span>
+                            <span class="text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Kelas ${item.studentClass}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 font-extrabold text-slate-600">${item.originalScore}</td>
+                    <td class="py-3 px-4 font-black text-indigo-600 text-sm">${scoreToShow}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${isPassed ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            ${isPassed ? 'LULUS' : 'REMEDIAL'}
+                        </span>
+                        ${item.teacherNotes ? `<p class="text-[10px] text-slate-500 italic mt-1 line-clamp-1">"${escapeHTML(item.teacherNotes)}"</p>` : ''}
+                    </td>
+                    <td class="py-3 px-4 text-[11px] text-slate-500">${item.timestamp}</td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="openEvaluationModal('${item.id}')" class="px-2.5 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold text-[11px] transition-colors" title="Evaluasi & Catatan">
+                                <i class="fa-solid fa-pen-to-square"></i> Evaluasi
+                            </button>
+                            <button onclick="deleteResultRecord('${item.id}')" class="p-1.5 rounded-lg text-rose-500 hover:bg-rose-100 transition-colors" title="Hapus Data">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openEvaluationModal(id) {
+            sfx.playClick();
+            activeEvalRecordId = id;
+            const record = quizResultsData.find(r => r.id === id);
+            if (!record) return;
+
+            document.getElementById('eval-student-avatar').innerText = record.avatar || '🦊';
+            document.getElementById('eval-student-name').innerText = record.studentName;
+            document.getElementById('eval-student-class').innerText = `Kelas ${record.studentClass}`;
+            document.getElementById('input-eval-score').value = record.finalScore ?? record.originalScore;
+            document.getElementById('input-eval-notes').value = record.teacherNotes || '';
+
+            // Render detailed question response list
+            const qContainer = document.getElementById('eval-question-list');
+            qContainer.innerHTML = '';
+            if (record.answers && record.answers.length > 0) {
+                record.answers.forEach((ans, i) => {
+                    const item = document.createElement('div');
+                    item.className = `p-3 rounded-xl text-xs border ${ans.isRight ? 'bg-emerald-50/60 border-emerald-200' : 'bg-rose-50/60 border-rose-200'}`;
+                    item.innerHTML = `
+                        <p class="font-bold text-slate-800">#${i + 1}. ${ans.question}</p>
+                        <p class="text-[11px] mt-1">Jawaban Murid: <strong class="${ans.isRight ? 'text-emerald-700' : 'text-rose-700'}">${ans.options[ans.selected] || '-'}</strong> | Jawaban Benar: <strong>${ans.options[ans.correct]}</strong></p>
+                    `;
+                    qContainer.appendChild(item);
+                });
+            } else {
+                qContainer.innerHTML = `<p class="text-xs text-slate-400 italic">Detail jawaban tidak tersedia.</p>`;
+            }
+
+            openModal('modal-teacher-eval');
+        }
+
+        function saveStudentEvaluation() {
+            if (!activeEvalRecordId) return;
+            const newScore = parseInt(document.getElementById('input-eval-score').value) || 0;
+            const newNotes = document.getElementById('input-eval-notes').value.trim();
+
+            window.updateQuizResultInCloud(activeEvalRecordId, {
+                finalScore: Math.min(100, Math.max(0, newScore)),
+                teacherNotes: newNotes
+            });
+
+            sfx.playCorrect();
+            closeModal('modal-teacher-eval');
+            renderTeacherTable();
+        }
+
+        function deleteResultRecord(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus data pengerjaan murid ini?")) {
+                window.deleteQuizResultInCloud(id);
+                sfx.playClick();
+                renderTeacherTable();
+            }
+        }
+
+        // --- EXPORT FUNCTIONS (EXCEL, PDF, WORD) ---
+        function exportToExcel() {
+            sfx.playClick();
+            if (quizResultsData.length === 0) {
+                alertModal("Informasi", "Belum ada data pengerjaan murid untuk diekspor!");
+                return;
+            }
+
+            const excelRows = quizResultsData.map((r, i) => ({
+                "No": i + 1,
+                "Nama Murid": r.studentName,
+                "Kelas": r.studentClass,
+                "Skor Original": r.originalScore,
+                "Nilai Akhir Guru": r.finalScore ?? r.originalScore,
+                "Catatan Guru": r.teacherNotes || "-",
+                "Waktu Pengerjaan": r.timestamp
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(excelRows);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Kuis Matematika");
+
+            XLSX.writeFile(workbook, `Rekap_Nilai_Matematika_SMP_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        }
+
+        function exportToPDF() {
+            sfx.playClick();
+            if (quizResultsData.length === 0) {
+                alertModal("Informasi", "Belum ada data pengerjaan murid untuk dicetak!");
+                return;
+            }
+
+            const printTable = document.getElementById('print-table-body');
+            printTable.innerHTML = '';
+
+            quizResultsData.forEach((r, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border border-slate-400 p-2 text-center">${i + 1}</td>
+                    <td class="border border-slate-400 p-2 font-bold">${escapeHTML(r.studentName)}</td>
+                    <td class="border border-slate-400 p-2 text-center">${r.studentClass}</td>
+                    <td class="border border-slate-400 p-2 text-center">${r.originalScore}</td>
+                    <td class="border border-slate-400 p-2 text-center font-bold">${r.finalScore ?? r.originalScore}</td>
+                    <td class="border border-slate-400 p-2">${escapeHTML(r.teacherNotes || '-')}</td>
+                `;
+                printTable.appendChild(tr);
+            });
+
+            document.getElementById('print-date').innerText = `Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`;
+
+            window.print();
+        }
+
+        function exportToWord() {
+            sfx.playClick();
+            if (quizResultsData.length === 0) {
+                alertModal("Informasi", "Belum ada data pengerjaan murid untuk diekspor!");
+                return;
+            }
+
+            let tableHTML = `
+                <table border="1" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12px;">
+                    <thead style="background-color: #f2f2f2;">
+                        <tr>
+                            <th style="padding: 8px;">No</th>
+                            <th style="padding: 8px;">Nama Murid</th>
+                            <th style="padding: 8px;">Kelas</th>
+                            <th style="padding: 8px;">Skor Original</th>
+                            <th style="padding: 8px;">Nilai Akhir Guru</th>
+                            <th style="padding: 8px;">Catatan Guru</th>
+                            <th style="padding: 8px;">Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            quizResultsData.forEach((r, i) => {
+                tableHTML += `
+                    <tr>
+                        <td style="padding: 6px; text-align: center;">${i + 1}</td>
+                        <td style="padding: 6px; font-weight: bold;">${escapeHTML(r.studentName)}</td>
+                        <td style="padding: 6px; text-align: center;">${r.studentClass}</td>
+                        <td style="padding: 6px; text-align: center;">${r.originalScore}</td>
+                        <td style="padding: 6px; text-align: center; font-weight: bold;">${r.finalScore ?? r.originalScore}</td>
+                        <td style="padding: 6px;">${escapeHTML(r.teacherNotes || '-')}</td>
+                        <td style="padding: 6px; text-align: center;">${r.timestamp}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `</tbody></table>`;
+
+            const docContent = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><title>Rekap Nilai Matematika SMP</title></head>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2 style="text-align: center; color: #1e293b;">LAPORAN REKAPITULASI HASIL KUIS MATEMATIKA SMP</h2>
+                    <p style="text-align: center; font-size: 12px; color: #64748b;">Kurikulum Merdeka • Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+                    <hr style="margin-bottom: 20px;">
+                    ${tableHTML}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob(['\ufeff' + docContent], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Rekap_Nilai_Matematika_SMP_${new Date().toISOString().slice(0, 10)}.doc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- UTILITY HELPERS ---
+        function saveToLocalStorage() {
+            localStorage.setItem('math_quiz_results_v1', JSON.stringify(quizResultsData));
+        }
+
+        function shuffleArray(arr) {
+            return arr.sort(() => Math.random() - 0.5);
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function alertModal(title, msg) {
+            // Simple Tailwind alert replace alert()
+            const div = document.createElement('div');
+            div.className = "fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4";
+            div.innerHTML = `
+                <div class="glass-card rounded-2xl p-6 max-w-sm w-full text-center space-y-4 border border-white/80">
+                    <h4 class="font-extrabold text-slate-800 text-lg">${title}</h4>
+                    <p class="text-xs text-slate-600">${msg}</p>
+                    <button onclick="this.closest('.fixed').remove()" class="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-md">Tutup</button>
+                </div>
+            `;
+            document.body.appendChild(div);
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            initAvatarGrid();
+        };
+    </script>
+</body>
+</html>
